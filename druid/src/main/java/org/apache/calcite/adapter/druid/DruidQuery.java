@@ -1598,7 +1598,9 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       }
       final DruidConnectionImpl connection =
           new DruidConnectionImpl(query.druidTable.schema.url,
-              query.druidTable.schema.coordinatorUrl);
+              query.druidTable.schema.coordinatorUrl,
+              query.druidTable.schema.userName,
+              query.druidTable.schema.password);
       final boolean limitQuery = containsLimit(querySpec);
       final DruidConnectionImpl.Page page = new DruidConnectionImpl.Page();
       do {

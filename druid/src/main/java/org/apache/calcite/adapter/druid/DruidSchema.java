@@ -40,6 +40,8 @@ import java.util.Set;
 public class DruidSchema extends AbstractSchema {
   final String url;
   final String coordinatorUrl;
+  String userName;
+  String password;
   private final boolean discoverTables;
   private Map<String, Table> tableMap = null;
 
@@ -53,9 +55,12 @@ public class DruidSchema extends AbstractSchema {
    *                       if false, only create tables explicitly in the model
    */
   public DruidSchema(String url, String coordinatorUrl,
+      String userName, String password,
       boolean discoverTables) {
     this.url = Objects.requireNonNull(url, "url");
     this.coordinatorUrl = Objects.requireNonNull(coordinatorUrl, "coordinatorUrl");
+    this.userName = userName;
+    this.password = password;
     this.discoverTables = discoverTables;
   }
 
@@ -65,7 +70,7 @@ public class DruidSchema extends AbstractSchema {
     }
 
     if (tableMap == null) {
-      final DruidConnectionImpl connection = new DruidConnectionImpl(url, coordinatorUrl);
+      final DruidConnectionImpl connection = new DruidConnectionImpl(url, coordinatorUrl, userName, password);
       Set<String> tableNames = connection.tableNames();
 
       tableMap = Maps.asMap(

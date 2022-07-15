@@ -60,10 +60,17 @@ public class DruidSchemaFactory implements SchemaFactory {
     final String coordinatorUrl = operand.get("coordinatorUrl") instanceof String
         ? (String) operand.get("coordinatorUrl")
         : url.replace(":8082", ":8081");
+
+    final String userName = operand.get("userName") instanceof String
+        ? (String) operand.get("userName")
+        : "";
+    final String password = operand.get("password") instanceof String
+        ? (String) operand.get("password")
+        : "";
     // "tables" is a hidden attribute, copied in from the enclosing custom
     // schema
     final boolean containsTables = operand.get("tables") instanceof List
         && ((List) operand.get("tables")).size() > 0;
-    return new DruidSchema(url, coordinatorUrl, !containsTables);
+    return new DruidSchema(url, coordinatorUrl, userName, password, !containsTables);
   }
 }

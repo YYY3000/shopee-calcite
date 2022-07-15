@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.druid;
 
+
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.avatica.util.DateTimeUtils;
@@ -39,6 +40,9 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 import org.joda.time.Interval;
+
+import scalaj.http.Http;
+import scalaj.http.HttpConstants;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -67,8 +71,11 @@ import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
  * Implementation of {@link DruidConnection}.
  */
 class DruidConnectionImpl implements DruidConnection {
+
   private final String url;
   private final String coordinatorUrl;
+  private String userName;
+  private String password;
 
   public static final String DEFAULT_RESPONSE_TIMESTAMP_COLUMN = "timestamp";
   private static final SimpleDateFormat UTC_TIMESTAMP_FORMAT;
@@ -80,9 +87,11 @@ class DruidConnectionImpl implements DruidConnection {
     TIMESTAMP_FORMAT = getDateFormatter(DateTimeUtils.TIMESTAMP_FORMAT_STRING);
   }
 
-  DruidConnectionImpl(String url, String coordinatorUrl) {
+  DruidConnectionImpl(String url, String coordinatorUrl, String userName, String password) {
     this.url = Objects.requireNonNull(url, "url");
     this.coordinatorUrl = Objects.requireNonNull(coordinatorUrl, "coordinatorUrl");
+    this.userName = userName;
+    this.password = password;
   }
 
   /** Executes a query request.
@@ -99,7 +108,7 @@ class DruidConnectionImpl implements DruidConnection {
       Page page) {
     final String url = this.url + "/druid/v2/?pretty";
     final Map<String, String> requestHeaders =
-        ImmutableMap.of("Content-Type", "application/json");
+        ImmutableMap.of("Content-Type", "application/json", "Authorization", HttpConstants.basicAuthValue(userName, password));
     if (CalciteSystemProperty.DEBUG.value()) {
       System.out.println(data);
     }
@@ -575,7 +584,7 @@ class DruidConnectionImpl implements DruidConnection {
       Map<String, List<ComplexMetric>> complexMetrics) {
     final String url = this.url + "/druid/v2/?pretty";
     final Map<String, String> requestHeaders =
-        ImmutableMap.of("Content-Type", "application/json");
+        ImmutableMap.of("Content-Type", "application/json", "Authorization", HttpConstants.basicAuthValue(userName, password));
     final String data = DruidQuery.metadataQuery(dataSourceName, intervals);
     if (CalciteSystemProperty.DEBUG.value()) {
       System.out.println("Druid: " + data);
@@ -633,7 +642,7 @@ class DruidConnectionImpl implements DruidConnection {
   /** Reads data source names from Druid. */
   Set<String> tableNames() {
     final Map<String, String> requestHeaders =
-        ImmutableMap.of("Content-Type", "application/json");
+        ImmutableMap.of("Content-Type", "application/json", "Authorization", HttpConstants.basicAuthValue(userName, password));
     final String data = null;
     final String url = coordinatorUrl + "/druid/coordinator/v1/metadata/datasources";
     if (CalciteSystemProperty.DEBUG.value()) {
@@ -758,4 +767,5 @@ class DruidConnectionImpl implements DruidConnection {
       return DruidType.getTypeFromMetric(type);
     }
   }
+
 }
