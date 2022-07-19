@@ -41,7 +41,6 @@ import com.google.common.collect.ImmutableSet;
 
 import org.joda.time.Interval;
 
-import scalaj.http.Http;
 import scalaj.http.HttpConstants;
 
 import java.io.ByteArrayInputStream;
