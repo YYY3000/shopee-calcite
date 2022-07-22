@@ -24,24 +24,18 @@ public class DruidQueryDemo {
 
     Properties info = new Properties();
     info.setProperty("caseSensitive", "false");
-    info.setProperty("model", "/Users/yiyunyin/java/shopee-calcite/druid/src/test/resources" +
-        "/druid-campaign-model.json");
+    info.setProperty("model", "/Users/yiyunyin/java/shopee-calcite/druid/src/test/resources/druid-campaign-model.json");
     try(Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
       CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class);
 
-      SchemaPlus schema = calciteConnection.getRootSchema().getSubSchema("mysql_test");
-      System.out.println(schema.getName());
-
       String sql1 = "SELECT a.* FROM \n" +
-          "(SELECT \n" +
-          "shopid, floor(__time to MINUTE ) as dt,\n" +
+          "(SELECT shopid, floor(__time to MINUTE ) as dt,\n" +
           "sum(view) as pv,APPROX_COUNT_DISTINCT(uniq_deviceid) as uv\n" +
           "FROM druid_campaign_station.shopee_mkpldp_campaign__mp_sg_shop_item_traffic_view\n" +
           "WHERE __time>='2022-04-20T06:00:00.000Z'\n" +
           "and __time<'2022-04-26T06:00:00.000Z'\n" +
           "GROUP by shopid, floor(__time to MINUTE )\n" +
           "limit 10) as a";
-      String sql2 = "select * from mysql_test.shop_tab limit 10";
       Statement statement = calciteConnection.createStatement();
       ResultSet resultSet = statement.executeQuery(sql1);
 
