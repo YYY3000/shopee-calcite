@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "defaultSchema": "campaign",
+  "schemas": [
+    {
+      "type": "custom",
+      "name": "druid_campaign_station",
+      "factory": "org.apache.calcite.adapter.druid.DruidSchemaFactory",
+      "operand": {
+        "url": "http://10.128.144.98:8888",
+        "coordinatorUrl": "http://10.128.144.98:8888",
+        "userName": "admin",
+        "password": "TODEdXYSQ3r2W6RIOgTk92nioKqmENl4Hcy5MXcT"
+      }
+    }
+  ]
+}
