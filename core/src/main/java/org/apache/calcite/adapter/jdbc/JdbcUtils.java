@@ -50,7 +50,7 @@ import javax.sql.DataSource;
 /**
  * Utilities for the JDBC provider.
  */
-final class JdbcUtils {
+final public class JdbcUtils {
   private JdbcUtils() {
     throw new AssertionError("no instances!");
   }
@@ -78,7 +78,7 @@ final class JdbcUtils {
   }
 
   /** Pool of dialects. */
-  static class DialectPool {
+  static public class DialectPool {
     public static final DialectPool INSTANCE = new DialectPool();
 
     private final LoadingCache<Pair<SqlDialectFactory, DataSource>, SqlDialect> cache =

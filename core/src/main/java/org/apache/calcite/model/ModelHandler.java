@@ -70,7 +70,7 @@ import static java.util.Objects.requireNonNull;
  * Reads a model and creates schema objects accordingly.
  */
 public class ModelHandler {
-  private static final ObjectMapper JSON_MAPPER = new ObjectMapper()
+  public static final ObjectMapper JSON_MAPPER = new ObjectMapper()
       .configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true)
       .configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true)
       .configure(JsonParser.Feature.ALLOW_COMMENTS, true);

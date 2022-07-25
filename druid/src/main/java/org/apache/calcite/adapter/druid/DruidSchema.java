@@ -64,7 +64,7 @@ public class DruidSchema extends AbstractSchema {
     this.discoverTables = discoverTables;
   }
 
-  @Override protected Map<String, Table> getTableMap() {
+  @Override protected synchronized Map<String, Table> getTableMap() {
     if (!discoverTables) {
       return ImmutableMap.of();
     }

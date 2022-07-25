@@ -34,6 +34,7 @@ dependencies {
     implementation("com.google.guava:guava")
     implementation("org.apache.commons:commons-lang3")
     implementation("org.scalaj:scalaj-http_2.11:2.4.2")
+    implementation("mysql:mysql-connector-java:8.0.29")
 
     testImplementation(project(":testkit"))
     testImplementation("org.mockito:mockito-core")
