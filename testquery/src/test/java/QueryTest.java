@@ -1,5 +1,3 @@
-package org.apache.calcite.test;
-
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.druid.DruidSchema;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
@@ -12,7 +10,10 @@ import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
-import org.apache.calcite.plan.*;
+import org.apache.calcite.plan.Contexts;
+import org.apache.calcite.plan.ConventionTraitDef;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCostImpl;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.rel.RelNode;
@@ -48,16 +49,16 @@ import java.sql.Statement;
 import java.util.Collections;
 import java.util.Properties;
 
-public class DruidQueryDemo {
+public class QueryTest {
+
+  private static final String modelFile = "/Users/yiyunyin/java/shopee-calcite/testquery/src/test/resources/druid-campaign-model.json";
 
   @Test
   void testDruidQuery() {
-    String modelFile = "/Users/yiyunyin/java/shopee-calcite/druid/src/test/resources/druid" +
-        "-campaign-model.json";
     String query = "SELECT shopid, floor(__time to DAY ) as dt\n" +
         "FROM druid_campaign_station.shopee_mkpldp_campaign__mp_sg_shop_item_traffic_view\n" +
-        "WHERE __time>='2022-04-20T06:00:00.000Z'\n" +
-        "and __time<'2022-04-26T06:00:00.000Z'\n" +
+        "WHERE __time>='2022-04-26T06:00:00.000Z'\n" +
+        "and __time<'2022-04-28T06:00:00.000Z'\n" +
         "limit 10";
 
     Properties info = new Properties();
@@ -93,7 +94,7 @@ public class DruidQueryDemo {
         "(SELECT shopid, floor(__time to MINUTE ) as dt\n" +
         "FROM druid_campaign_station.shopee_mkpldp_campaign__mp_sg_shop_item_traffic_view\n" +
         "WHERE __time>='2022-04-20T06:00:00.000Z'\n" +
-        "and __time<'2022-04-26T06:00:00.000Z'\n" +
+        "and __time<'2022-04-28T06:00:00.000Z'\n" +
         "limit 10) as a\n" +
         "left join\n" +
         "(SELECT * FROM mysql_test_local.shop_tab) as b\n" +

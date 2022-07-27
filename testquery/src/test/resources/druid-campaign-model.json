@@ -16,7 +16,7 @@
     {
       "type": "jdbc",
       "name": "mysql_test_local",
-      "jdbcDriver": "com.mysql.jdbc.Driver",
+      "jdbcDriver": "com.mysql.cj.jdbc.Driver",
       "jdbcUrl": "jdbc:mysql://localhost:3306/test",
       "jdbcUser": "root",
       "jdbcPassword": "3000"
