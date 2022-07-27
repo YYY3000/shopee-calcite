@@ -43,6 +43,7 @@ import org.junit.jupiter.api.Test;
 import javax.sql.DataSource;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.Statement;
 import java.util.Collections;
 import java.util.Properties;
@@ -69,10 +70,13 @@ public class DruidQueryDemo {
       // execute query
       try (ResultSet resultSet = statement.executeQuery(query)) {
         while (resultSet.next()) {
-          int columnIndex1 = resultSet.findColumn("shopid");
-          int columnIndex2 = resultSet.findColumn("dt");
-          System.out.println(resultSet.getString(columnIndex1));
-          System.out.println(resultSet.getString(columnIndex2));
+          ResultSetMetaData metaData = resultSet.getMetaData();
+          for (int i = 0; i < metaData.getColumnCount(); i++) {
+            int columnIndex = i + 1;
+            String columnName = metaData.getColumnName(columnIndex);
+            String columnValue = resultSet.getString(columnIndex);
+            System.out.println(columnName + ":" + columnValue);
+          }
         }
       }
     } catch (Exception e) {
@@ -133,8 +137,13 @@ public class DruidQueryDemo {
       // execute query sql
       try (ResultSet resultSet = statement.executeQuery(sql)) {
         while (resultSet.next()) {
-          int columnIndex1 = resultSet.findColumn("shopid");
-          System.out.println(resultSet.getString(columnIndex1));
+          ResultSetMetaData metaData = resultSet.getMetaData();
+          for (int i = 0; i < metaData.getColumnCount(); i++) {
+            int columnIndex = i + 1;
+            String columnName = metaData.getColumnName(columnIndex);
+            String columnValue = resultSet.getString(columnIndex);
+            System.out.println(columnName + ":" + columnValue);
+          }
         }
       }
     } catch (Exception e) {
