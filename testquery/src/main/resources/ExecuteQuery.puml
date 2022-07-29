@@ -1,0 +1,43 @@
+@startuml
+
+用户 -> Controller: 发送查询请求
+Controller -> QueryService: 调用查询方法
+
+rnote over QueryService
+    加载对应SQL模板
+end rnote
+
+rnote over QueryService
+    替换查询参数
+end rnote
+
+QueryService -> QueryEngine: 发送Sql查询请求
+
+rnote over QueryEngine
+    加载Project对应Schema实例List
+    (客户端注册时加载)
+end rnote
+rnote over QueryEngine
+    初始化查询连接
+end rnote
+rnote over QueryEngine
+    连接中添加对应的Schema List
+end rnote
+rnote over QueryEngine
+    生成逻辑执行计划
+end rnote
+
+QueryEngine -> StorageA: 查询A数据源数据
+StorageA --> QueryEngine: 返回数据集合A
+QueryEngine -> StorageB: 查询B数据源数据
+StorageB --> QueryEngine: 返回数据集合B
+
+rnote over QueryEngine
+    组合数据集合A和B
+end rnote
+
+QueryEngine --> QueryService: OK: 返回数据
+QueryService --> Controller: OK: 返回数据
+Controller --> 用户: OK: 返回数据
+
+@enduml

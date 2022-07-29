@@ -1,0 +1,38 @@
+@startuml
+
+BE客户端 -> QueryEngine: 申请权限和注册客户端project
+QueryEngine -> MySQL: 初始化唯一Token,保存客户端project信息
+MySQL --> QueryEngine: OK
+QueryEngine -> BE客户端: 返回Token给用户
+
+BE客户端 -> QueryEngine: 注册数据源1、2、3
+
+rnote over QueryEngine
+    校验权限、参数
+end rnote
+
+QueryEngine -> Storage: 校验数据源是否可以连通(Hello接口交互)
+Storage --> QueryEngine: OK
+
+QueryEngine -> MySQL: 保存数据源信息,跟客户端project绑定
+MySQL --> QueryEngine: OK
+
+rnote over QueryEngine
+    初始化创建Schema实例并放入缓存
+    (元数据懒加载-第一次查询时获取)
+end rnote
+
+QueryEngine --> BE客户端: OK
+
+BE客户端 -> QueryEngine: 增删改数据源、刷新数据源
+rnote over QueryEngine
+    重复以上流程...
+end rnote
+
+rnote over QueryEngine
+    重新创建Schema实例
+end rnote
+
+QueryEngine --> BE客户端: OK
+
+@enduml
