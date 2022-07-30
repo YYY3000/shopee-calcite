@@ -1879,6 +1879,11 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction COALESCE = new SqlCoalesceFunction();
 
   /**
+   * The <code>TIME_FLOOR</code> function.
+   */
+  public static final SqlFunction TIME_FLOOR = new SqlTimeFloorFunction(SqlKind.TIME_FLOOR);
+
+  /**
    * The <code>FLOOR</code> function.
    */
   public static final SqlFunction FLOOR = new SqlFloorFunction(SqlKind.FLOOR);

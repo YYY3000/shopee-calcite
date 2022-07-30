@@ -326,6 +326,19 @@ void SqlInsertKeywords(List<SqlLiteral> keywords) :
 }
 
 /*
+* Parse time_floor function parameters
+*/
+SqlNode TimeFloorCeilOptions(Span s) :
+{
+    SqlNode node;
+}
+{
+    node = StandardTimeFloorCeilOptions(s) {
+        return node;
+    }
+}
+
+/*
 * Parse Floor/Ceil function parameters
 */
 SqlNode FloorCeilOptions(Span s, boolean floorFlag) :
@@ -5826,6 +5839,11 @@ SqlNode BuiltinFunctionCall() :
             return SqlStdOperatorTable.OVERLAY.createCall(s.end(this), args);
         }
     |
+        <TIME_FLOOR> { s = span(); }
+        e = TimeFloorCeilOptions(s) {
+            return e;
+        }
+    |
         <FLOOR> { s = span(); }
         e = FloorCeilOptions(s, true) {
             return e;
@@ -6754,6 +6772,49 @@ SqlCall NamedCall() :
 }
 
 /*
+* Parse Time Floor function parameters
+*/
+SqlNode StandardTimeFloorCeilOptions(Span s) :
+{
+    SqlNode e;
+    final List<SqlNode> args = new ArrayList<SqlNode>();
+    TimeUnit unit;
+    SqlNode timeZone;
+    SqlCall function;
+    final Span s1;
+}
+{
+    <LPAREN> AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
+    (
+        <TO>
+        unit = TimeUnit() {
+            args.add(new SqlIntervalQualifier(unit, null, getPos()));
+        }
+        <COMMA>
+        timeZone = StringLiteral() {
+            args.add(timeZone);
+        }
+    )?
+    <RPAREN> {
+        SqlOperator op = SqlStdOperatorTable.TIME_FLOOR;
+        function =  op.createCall(s.end(this), args);
+    }
+    (
+        <OVER> { s1 = span(); }
+        (
+            e = SimpleIdentifier()
+        |
+            e = WindowSpecification()
+        )
+        {
+            return SqlStdOperatorTable.OVER.createCall(s1.end(this), function, e);
+        }
+    |
+        { return function; }
+    )
+}
+
+/*
 * Parse Floor/Ceil function parameters
 */
 SqlNode StandardFloorCeilOptions(Span s, boolean floorFlag) :
@@ -6855,6 +6916,7 @@ SqlIdentifier ReservedFunctionName() :
     |   <EVERY>
     |   <EXP>
     |   <FIRST_VALUE>
+    |   <TIME_FLOOR>
     |   <FLOOR>
     |   <FUSION>
     |   <INTERSECTION>
@@ -7396,6 +7458,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < FIRST: "FIRST" >
 |   < FIRST_VALUE: "FIRST_VALUE">
 |   < FLOAT: "FLOAT" >
+|   < TIME_FLOOR: "TIME_FLOOR" >
 |   < FLOOR: "FLOOR" >
 |   < FOLLOWING: "FOLLOWING" >
 |   < FOR: "FOR" >
