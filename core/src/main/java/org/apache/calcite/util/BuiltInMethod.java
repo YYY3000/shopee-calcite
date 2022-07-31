@@ -405,6 +405,7 @@ public enum BuiltInMethod {
   ADD_MONTHS_INT(SqlFunctions.class, "addMonths", int.class, int.class),
   SUBTRACT_MONTHS(SqlFunctions.class, "subtractMonths", long.class,
       long.class),
+  TIME_FLOOR(SqlFunctions.class, "timeFloor", int.class, int.class),
   FLOOR(SqlFunctions.class, "floor", int.class, int.class),
   CEIL(SqlFunctions.class, "ceil", int.class, int.class),
   COSH(SqlFunctions.class, "cosh", long.class),

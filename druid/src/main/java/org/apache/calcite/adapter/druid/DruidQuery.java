@@ -142,6 +142,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           .add(new UnarySuffixOperatorConversion(SqlStdOperatorTable.IS_NULL, "== null"))
           .add(new UnarySuffixOperatorConversion(SqlStdOperatorTable.IS_NOT_NULL, "!= null"))
           .add(new FloorOperatorConversion())
+          .add(new TimeFloorOperatorConversion())
           .add(new CeilOperatorConversion())
           .add(new SubstringOperatorConversion())
           .build();

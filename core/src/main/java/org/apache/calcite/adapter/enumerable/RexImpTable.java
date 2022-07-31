@@ -208,6 +208,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXP;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXTRACT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FIRST_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FLOOR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TIME_FLOOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FUSION;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN_OR_EQUAL;
@@ -447,6 +448,10 @@ public class RexImpTable {
     map.put(DATETIME_PLUS, new DatetimeArithmeticImplementor());
     map.put(MINUS_DATE, new DatetimeArithmeticImplementor());
     map.put(EXTRACT, new ExtractImplementor());
+    map.put(TIME_FLOOR,
+        new TimeFloorImplementor(BuiltInMethod.TIME_FLOOR.method.getName(),
+            BuiltInMethod.UNIX_TIMESTAMP_FLOOR.method,
+            BuiltInMethod.UNIX_DATE_FLOOR.method));
     map.put(FLOOR,
         new FloorImplementor(BuiltInMethod.FLOOR.method.getName(),
             BuiltInMethod.UNIX_TIMESTAMP_FLOOR.method,
@@ -2037,6 +2042,7 @@ public class RexImpTable {
         }
 
       case 2:
+      case 3:
         final Type type;
         final Method floorMethod;
         final boolean preFloor;
@@ -2088,6 +2094,20 @@ public class RexImpTable {
           EnumUtils.convert(
               Expressions.constant(timeUnit.multiplier), type));
     }
+  }
+
+  /** Implementor for the {@code TIME_FLOOR} functions. */
+  private static class TimeFloorImplementor extends FloorImplementor {
+
+    TimeFloorImplementor(String methodName, Method timestampMethod,
+        Method dateMethod) {
+      super(methodName, timestampMethod, dateMethod);
+    }
+
+    @Override String getVariableName() {
+      return "time_floor";
+    }
+
   }
 
   /** Implementor for a function that generates calls to a given method. */

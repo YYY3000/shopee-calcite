@@ -1304,6 +1304,25 @@ public class SqlFunctions {
     return bigDecimals[1];
   }
 
+  // TIME FLOOR
+  /** SQL <code>FLOOR</code> operator applied to int values. */
+  public static int timeFloor(int b0, int b1) {
+    int r = b0 % b1;
+    if (r < 0) {
+      r += b1;
+    }
+    return b0 - r;
+  }
+
+  /** SQL <code>FLOOR</code> operator applied to long values. */
+  public static long timeFloor(long b0, long b1) {
+    long r = b0 % b1;
+    if (r < 0) {
+      r += b1;
+    }
+    return b0 - r;
+  }
+
   // FLOOR
 
   public static double floor(double b0) {

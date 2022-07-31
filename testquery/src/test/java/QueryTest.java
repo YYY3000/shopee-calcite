@@ -27,6 +27,7 @@ import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlDialectFactoryImpl;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -51,14 +52,16 @@ import java.util.Properties;
 
 public class QueryTest {
 
-  private static final String modelFile = "/Users/yiyunyin/java/shopee-calcite/testquery/src/test/resources/druid-campaign-model.json";
+  private static final String modelFile = "/Users/yiyunyin/java/shopee-calcite/testquery/src/test" +
+      "/resources/druid-campaign-model.json";
 
   @Test
   void testDruidQuery() {
-    String query = "SELECT shopid, floor(__time to DAY ) as dt\n" +
+    String query = "SELECT shopid, time_floor(__time to DAY, 'UTC') as dt\n" +
         "FROM druid_campaign_station.shopee_mkpldp_campaign__mp_sg_shop_item_traffic_view\n" +
-        "WHERE __time>='2022-04-26T06:00:00.000Z'\n" +
-        "and __time<'2022-04-28T06:00:00.000Z'\n" +
+        "WHERE __time>='2022-07-29T17:00:00.000Z'\n" +
+        "and __time<'2022-07-30T17:00:00.000Z'\n" +
+//        "ORDER BY __time ASC\n" +
         "limit 10";
 
     Properties info = new Properties();
@@ -110,7 +113,7 @@ public class QueryTest {
 
     DataSource dataSource =
         JdbcSchema.dataSource("jdbc:mysql://localhost:3306/test",
-            "com.mysql.jdbc.Driver",
+            "com.mysql.cj.jdbc.Driver",
             "root",
             "3000");
     Expression rootExpression = Expressions.call(
@@ -164,8 +167,6 @@ public class QueryTest {
         "(SELECT * FROM mysql_test_local.shop_tab) as b\n" +
         "ON a.shopid=b.shopid";
 
-    String modelFile = "/Users/yiyunyin/java/shopee-calcite/druid/src/test/resources/druid" +
-        "-campaign-model.json";
     Properties info = new Properties();
     info.setProperty("caseSensitive", "false");
     info.setProperty("model", modelFile);
@@ -238,6 +239,24 @@ public class QueryTest {
       // Execute
 
     } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  @Test
+  void testSqlParser() {
+    String sql = "SELECT shopid,time_floor(__time to day, 'UTC') \n" +
+        "FROM druid_campaign_station.shopee_mkpldp_campaign__mp_sg_shop_item_traffic_view\n" +
+        "WHERE __time>='2022-04-20T06:00:00.000Z'\n" +
+        "AND __time<'2022-04-28T06:00:00.000Z'\n" +
+        "LIMIT 10";
+
+    // Parser (sql -> SqlNode)
+    try {
+      SqlParser parser = SqlParser.create(sql);
+      SqlNode sqlNode = parser.parseQuery();
+      System.out.println(sqlNode);
+    } catch (SqlParseException e) {
       e.printStackTrace();
     }
   }

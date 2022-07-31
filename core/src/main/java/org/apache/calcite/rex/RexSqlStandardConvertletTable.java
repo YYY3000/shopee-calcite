@@ -121,6 +121,7 @@ public class RexSqlStandardConvertletTable
     registerEquivOp(SqlStdOperatorTable.LOG10);
     registerEquivOp(SqlStdOperatorTable.ABS);
     registerEquivOp(SqlStdOperatorTable.EXP);
+    registerEquivOp(SqlStdOperatorTable.TIME_FLOOR);
     registerEquivOp(SqlStdOperatorTable.FLOOR);
     registerEquivOp(SqlStdOperatorTable.CEIL);
 

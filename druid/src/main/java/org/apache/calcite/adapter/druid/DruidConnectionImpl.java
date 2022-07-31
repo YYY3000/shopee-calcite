@@ -111,6 +111,8 @@ class DruidConnectionImpl implements DruidConnection {
     if (CalciteSystemProperty.DEBUG.value()) {
       System.out.println(data);
     }
+    // TODO: debug print, will clear
+    System.out.println(data);
     try (InputStream in0 = post(url, data, requestHeaders, 10000, 1800000);
          InputStream in = traceResponse(in0)) {
       parse(queryType, in, sink, fieldNames, fieldTypes, page);
