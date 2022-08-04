@@ -1249,15 +1249,12 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         || limit.limit == null || limit.collations == null || limit.collations.size() != 1) {
       return null;
     }
-    if (limit.collations.get(0).dimension.equals(groupByKeyDims.get(0).getOutputName())) {
-      return null;
-    }
-    if (limit.collations.get(0).direction.equals("ascending")) {
-      // Only DESC is allowed
-      return null;
-    }
 
-    final String topNMetricColumnName = limit.collations.get(0).dimension;
+    DruidJsonTopNMetric topNMetric = new DruidJsonTopNMetric(limit.collations.get(0).dimension,
+        limit.collations.get(0).dimension.equals(groupByKeyDims.get(0).getOutputName()),
+        limit.collations.get(0).dimensionOrder,
+        limit.collations.get(0).direction);
+
     final StringWriter sw = new StringWriter();
     final JsonFactory factory = new JsonFactory();
     try {
@@ -1270,7 +1267,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       writeField(generator, "dimension", groupByKeyDims.get(0));
       writeFieldIf(generator, "virtualColumns",
           virtualColumnList.size() > 0 ? virtualColumnList : null);
-      generator.writeStringField("metric", topNMetricColumnName);
+      writeField(generator, "metric", topNMetric);
       writeFieldIf(generator, "filter", jsonFilter);
       writeField(generator, "aggregations", aggregations);
       writeFieldIf(generator, "postAggregations",
@@ -1282,6 +1279,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+
     return sw.toString();
   }
 
