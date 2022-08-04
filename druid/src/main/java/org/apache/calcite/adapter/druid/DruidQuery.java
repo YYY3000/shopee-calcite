@@ -682,6 +682,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     List<Direction> collationDirections = null;
     ImmutableBitSet.Builder numericCollationBitSetBuilder = ImmutableBitSet.builder();
     Integer fetch = null;
+    String direction = null;
     if (i < rels.size() && rels.get(i) instanceof Sort) {
       final Sort sort = (Sort) rels.get(i++);
       collationIndexes = new ArrayList<>();
@@ -768,7 +769,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           toDruidColumn(project, inputRowType, druidQuery);
       boolean needExtractForOperand = project instanceof RexCall
           && ((RexCall) project).getOperands().stream().anyMatch(DruidQuery::needUtcTimeExtract);
-      if (druidColumn.left == null || druidColumn.right != null || needExtractForOperand) {
+      if (!DruidTable.DEFAULT_TIMESTAMP_COLUMN.equals(druidColumn.left) && (druidColumn.left == null || druidColumn.right != null || needExtractForOperand)) {
         // It is a complex project pushed as expression
         final String expression = DruidExpressions
             .toDruidExpression(project, inputRowType, druidQuery);
@@ -829,7 +830,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       final DimensionSpec dimensionSpec;
       final RexNode project;
       if (projectNode == null) {
-        project =  RexInputRef.of(groupKey, inputRowType);
+        project = RexInputRef.of(groupKey, inputRowType);
       } else {
         project = projectNode.getProjects().get(groupKey);
       }
@@ -842,7 +843,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
             DruidExpressions.EXPRESSION_TYPES.get(project.getType().getSqlTypeName()));
         usedFieldNames.add(druidColumn.left);
       } else if (druidColumn.left != null && druidColumn.right != null) {
-       // CASE it is an extraction Dimension
+        // CASE it is an extraction Dimension
         final String columnPrefix;
         //@TODO Remove it! if else statement is not really needed it is here to make tests pass.
         if (project.getKind() == SqlKind.EXTRACT) {
@@ -910,7 +911,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     for (Pair<AggregateCall, String> agg : Pair.zip(aggCalls, aggNames)) {
       final String fieldName;
       final String expression;
-      final  AggregateCall aggCall = agg.left;
+      final AggregateCall aggCall = agg.left;
       final RexNode filterNode;
       // Type check First
       final RelDataType type = aggCall.getType();
@@ -921,7 +922,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         isNotAcceptedType = false;
       } else if (SqlTypeFamily.EXACT_NUMERIC.getTypeNames().contains(sqlTypeName)
           && (type.getScale() == 0
-              || druidQuery.getConnectionConfig().approximateDecimal())) {
+          || druidQuery.getConnectionConfig().approximateDecimal())) {
         // Decimal, If scale is zero or we allow approximating decimal, we can proceed
         isNotAcceptedType = false;
       } else {
@@ -987,8 +988,6 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       // It is Scan Query since no Grouping
       assert aggCalls == null;
       assert aggNames == null;
-      assert collationIndexes == null || collationIndexes.isEmpty();
-      assert collationDirections == null || collationDirections.isEmpty();
       final List<String> scanColumnNames;
       final List<VirtualColumn> virtualColumnList = new ArrayList<>();
       if (project != null) {
@@ -1001,8 +1000,14 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         // Scan all the fields
         scanColumnNames = rowType.getFieldNames();
       }
+
+      String direction = null;
+      if (collationDirections!= null && collationDirections.size() == 1) {
+        direction = collationDirections.get(0).name();
+      }
+
       final ScanQuery scanQuery = new ScanQuery(druidTable.dataSource, intervals, jsonFilter,
-          virtualColumnList, scanColumnNames, fetch);
+          virtualColumnList, scanColumnNames, fetch, direction);
       return new QuerySpec(QueryType.SCAN, scanQuery.toQuery(), scanColumnNames);
     }
 
@@ -1059,7 +1064,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       for (Pair<RexNode, String> pair : postProject.getNamedProjects()) {
         final RexNode postProjectRexNode = pair.left;
         String expression = DruidExpressions
-              .toDruidExpression(postProjectRexNode, postAggInputRowType, this);
+            .toDruidExpression(postProjectRexNode, postAggInputRowType, this);
         final String existingFieldName = existingProjects.get(expression);
         if (existingFieldName != null) {
           // simple input ref or Druid runtime identity cast will skip it, since it is here already
@@ -1124,11 +1129,11 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   /**
    * Converts a sort specification to a {@link JsonLimit} (never null).
    *
-   * @param fetch limit to fetch
-   * @param collationIndexes index of fields as listed in query row output
-   * @param collationDirections direction of sort
+   * @param fetch                   limit to fetch
+   * @param collationIndexes        index of fields as listed in query row output
+   * @param collationDirections     direction of sort
    * @param numericCollationIndexes flag of to determine sort comparator
-   * @param queryOutputFieldNames query output fields
+   * @param queryOutputFieldNames   query output fields
    */
   private static JsonLimit computeSort(@Nullable Integer fetch,
       List<Integer> collationIndexes, List<Direction> collationDirections,
@@ -1330,17 +1335,21 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
     private Integer fetchLimit;
 
+    private String direction;
+
     ScanQuery(String dataSource, List<Interval> intervals,
         DruidJsonFilter jsonFilter,
         List<VirtualColumn> virtualColumnList,
         List<String> columns,
-        Integer fetchLimit) {
+        Integer fetchLimit,
+        String direction) {
       this.dataSource = dataSource;
       this.intervals = intervals;
       this.jsonFilter = jsonFilter;
       this.virtualColumnList = virtualColumnList;
       this.columns = columns;
       this.fetchLimit = fetchLimit;
+      this.direction = direction;
     }
 
     public String toQuery() {
@@ -1359,6 +1368,9 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         generator.writeStringField("resultFormat", "compactedList");
         if (fetchLimit != null) {
           generator.writeNumberField("limit", fetchLimit);
+        }
+        if (direction != null) {
+          generator.writeStringField("order", direction);
         }
         generator.writeEndObject();
         generator.close();
@@ -1408,7 +1420,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
                 ImmutableList.of(fieldName));
           } else {
             aggregation = new JsonAggregation(complexMetric.getMetricType(), name,
-                    complexMetric.getMetricName(), null);
+                complexMetric.getMetricName(), null);
           }
           break;
         } else {
@@ -1671,6 +1683,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
     private final String expression;
     private final String ordering;
+
     private JsonExpressionPostAgg(String name, String expression, String ordering) {
       super(name, "expression");
       this.expression = expression;
