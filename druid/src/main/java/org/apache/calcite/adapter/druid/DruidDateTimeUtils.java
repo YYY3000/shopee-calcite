@@ -45,6 +45,7 @@ import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Utilities for generating intervals from RexNode.
@@ -289,6 +290,14 @@ public class DruidDateTimeUtils {
           return null;
         }
         return dateVal.getMillisSinceEpoch();
+      case CHAR:
+        try {
+          TimestampString dtsVal =
+              new TimestampString(Objects.requireNonNull(((RexLiteral) node).getValueAs(String.class)));
+          return dtsVal.getMillisSinceEpoch();
+        } catch (Exception e) {
+          return null;
+        }
       default:
         break;
       }
@@ -304,11 +313,9 @@ public class DruidDateTimeUtils {
       final RelDataType callType = call.getType();
       final RelDataType operandType = operand.getType();
       if (operand.getKind() == SqlKind.LITERAL
-          && callType.getSqlTypeName() == operandType.getSqlTypeName()
           && (callType.getSqlTypeName() == SqlTypeName.DATE
-              || callType.getSqlTypeName() == SqlTypeName.TIMESTAMP
-              || callType.getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE)
-          && callType.isNullable()
+          || callType.getSqlTypeName() == SqlTypeName.TIMESTAMP
+          || callType.getSqlTypeName() == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE)
           && !operandType.isNullable()) {
         return literalValue(operand);
       }
