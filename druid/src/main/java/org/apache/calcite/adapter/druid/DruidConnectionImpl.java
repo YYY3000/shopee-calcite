@@ -111,6 +111,7 @@ class DruidConnectionImpl implements DruidConnection {
     if (CalciteSystemProperty.DEBUG.value()) {
       System.out.println(data);
     }
+    System.out.println(data);
     try (InputStream in0 = post(url, data, requestHeaders, 10000, 1800000);
          InputStream in = traceResponse(in0)) {
       parse(queryType, in, sink, fieldNames, fieldTypes, page);
@@ -341,9 +342,9 @@ class DruidConnectionImpl implements DruidConnection {
     }
 
     if (isTimestampColumn || ColumnMetaData.Rep.JAVA_SQL_TIMESTAMP == type) {
-      final int fieldPos = posTimestampField != -1 ? posTimestampField : i;
+      final int fieldPos = i;
       if (token == JsonToken.VALUE_NUMBER_INT) {
-        rowBuilder.set(posTimestampField, parser.getLongValue());
+        rowBuilder.set(fieldPos, parser.getLongValue());
         return;
       } else {
         // We don't have any way to figure out the format of time upfront since we only have
