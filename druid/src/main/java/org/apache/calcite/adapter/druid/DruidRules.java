@@ -23,6 +23,7 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -831,8 +832,24 @@ public class DruidRules {
         // offset not supported by Druid
         return;
       }
-      if (query.getQueryType() == QueryType.SCAN && !RelOptUtil.isPureLimit(sort)) {
-        return;
+
+      List<RelFieldCollation> collations = sort.getCollation().getFieldCollations();
+      if (query.getQueryType() == QueryType.SCAN) {
+        if (!RelOptUtil.isLimit(sort)) {
+          return;
+        }
+
+        if (collations.size() > 1) {
+          return;
+        }
+
+        if (collations.size() == 1) {
+          RelFieldCollation firstCollation = collations.get(0);
+          String sortFieldName = query.getQuerySpec().fieldNames.get(firstCollation.getFieldIndex());
+          if (!sortFieldName.equalsIgnoreCase(DruidTable.DEFAULT_TIMESTAMP_COLUMN)) {
+            return;
+          }
+        }
       }
 
       final RelNode newSort = sort

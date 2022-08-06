@@ -35,8 +35,8 @@ import java.util.regex.Pattern;
 public class TimestampString implements Comparable<TimestampString> {
   private static final Pattern PATTERN =
       Pattern.compile("[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"
-          + " "
-          + "[0-9][0-9]:[0-9][0-9]:[0-9][0-9](\\.[0-9]*[1-9])?");
+          + "[ T]"
+          + "[0-9][0-9]:[0-9][0-9]:[0-9][0-9](\\.[0-9]{0,3}Z?)?");
 
   final String v;
 
@@ -158,13 +158,15 @@ public class TimestampString implements Comparable<TimestampString> {
   }
 
   private int getMillisInSecond() {
-    switch (v.length()) {
+    boolean endWithZ = v.endsWith("Z");
+    int validLength = endWithZ ? v.length() -1 : v.length();
+    switch (validLength) {
     case 19: // "1999-12-31 12:34:56"
       return 0;
     case 21: // "1999-12-31 12:34:56.7"
-      return Integer.valueOf(v.substring(20)) * 100;
+      return Integer.valueOf(v.substring(20, validLength)) * 100;
     case 22: // "1999-12-31 12:34:56.78"
-      return Integer.valueOf(v.substring(20)) * 10;
+      return Integer.valueOf(v.substring(20, validLength)) * 10;
     case 23: // "1999-12-31 12:34:56.789"
     default:  // "1999-12-31 12:34:56.789123456"
       return Integer.valueOf(v.substring(20, 23));
