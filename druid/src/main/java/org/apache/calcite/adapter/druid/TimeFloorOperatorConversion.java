@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.druid;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -48,8 +49,8 @@ public class TimeFloorOperatorConversion implements DruidSqlOperatorConverter {
     if (druidExpression == null) {
       return null;
     } else if (call.getOperands().size() == 3) {
-      // FLOOR(expr TO timeUnit, timeZone)
-      final TimeZone tz = TimeZone.getTimeZone(call.getOperands().get(2).getKind().name());
+      // TIME_FLOOR(expr TO timeUnit, timeZone)
+      final TimeZone tz = TimeZone.getTimeZone(RexLiteral.stringValue(call.getOperands().get(2)));
       final Granularity granularity = DruidDateTimeUtils
           .extractGranularity(call, tz.getID());
       if (granularity == null) {
