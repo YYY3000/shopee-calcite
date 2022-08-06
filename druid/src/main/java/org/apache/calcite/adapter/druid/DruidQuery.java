@@ -266,7 +266,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     switch (rexNode.getKind()) {
     case INPUT_REF:
       columnName = extractColumnName(rexNode, rowType, druidQuery);
-      if (needUtcTimeExtract(rexNode)) {
+      if (needUtcTimeExtract(rexNode) && !DruidTable.DEFAULT_TIMESTAMP_COLUMN.equals(columnName)) {
         extractionFunction = TimeExtractionFunction.createDefault(
             DateTimeUtils.UTC_ZONE.getID());
       } else {
@@ -769,7 +769,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           toDruidColumn(project, inputRowType, druidQuery);
       boolean needExtractForOperand = project instanceof RexCall
           && ((RexCall) project).getOperands().stream().anyMatch(DruidQuery::needUtcTimeExtract);
-      if (!DruidTable.DEFAULT_TIMESTAMP_COLUMN.equals(druidColumn.left) && (druidColumn.left == null || druidColumn.right != null || needExtractForOperand)) {
+
+      if (druidColumn.left == null || druidColumn.right != null || needExtractForOperand) {
         // It is a complex project pushed as expression
         final String expression = DruidExpressions
             .toDruidExpression(project, inputRowType, druidQuery);
