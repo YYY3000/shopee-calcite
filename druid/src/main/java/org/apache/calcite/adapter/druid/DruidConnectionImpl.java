@@ -343,9 +343,9 @@ class DruidConnectionImpl implements DruidConnection {
     }
 
     if (isTimestampColumn || ColumnMetaData.Rep.JAVA_SQL_TIMESTAMP == type) {
-      final int fieldPos = posTimestampField != -1 ? posTimestampField : i;
+      final int fieldPos = i;
       if (token == JsonToken.VALUE_NUMBER_INT) {
-        rowBuilder.set(posTimestampField, parser.getLongValue());
+        rowBuilder.set(fieldPos, parser.getLongValue());
         return;
       } else {
         // We don't have any way to figure out the format of time upfront since we only have
