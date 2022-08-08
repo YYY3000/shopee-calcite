@@ -1305,22 +1305,14 @@ public class SqlFunctions {
   }
 
   // TIME FLOOR
-  /** SQL <code>FLOOR</code> operator applied to int values. */
+  /** SQL <code>TIME_FLOOR</code> operator applied to int values. */
   public static int timeFloor(int b0, int b1) {
-    int r = b0 % b1;
-    if (r < 0) {
-      r += b1;
-    }
-    return b0 - r;
+    return floor(b0, b1);
   }
 
-  /** SQL <code>FLOOR</code> operator applied to long values. */
+  /** SQL <code>TIME_FLOOR</code> operator applied to long values. */
   public static long timeFloor(long b0, long b1) {
-    long r = b0 % b1;
-    if (r < 0) {
-      r += b1;
-    }
-    return b0 - r;
+    return floor(b0, b1);
   }
 
   // FLOOR
@@ -2538,6 +2530,11 @@ public class SqlFunctions {
   @NonDeterministic
   public static TimeZone timeZone(DataContext root) {
     return (TimeZone) DataContext.Variable.TIME_ZONE.get(root);
+  }
+
+  @NonDeterministic
+  public static TimeZone timeZone(String tz) {
+    return TimeZone.getTimeZone(tz);
   }
 
   /** SQL {@code USER} function. */

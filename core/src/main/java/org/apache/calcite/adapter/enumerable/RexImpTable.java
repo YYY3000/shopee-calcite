@@ -2047,12 +2047,17 @@ public class RexImpTable {
         final Method floorMethod;
         final boolean preFloor;
         Expression operand = argValueList.get(0);
+
+        Expression timeZoneExpression = Expressions.call(BuiltInMethod.TIME_ZONE.method, translator.getRoot());
+        if (call.getOperands().size() == 3) {
+          timeZoneExpression = Expressions.call(BuiltInMethod.TIME_ZONE_WITH_STRING.method, argValueList.get(2));
+        }
         switch (call.getType().getSqlTypeName()) {
         case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
           operand = Expressions.call(
               BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIME_ZONE_TO_TIMESTAMP.method,
               operand,
-              Expressions.call(BuiltInMethod.TIME_ZONE.method, translator.getRoot()));
+              timeZoneExpression);
           // fall through
         case TIMESTAMP:
           type = long.class;
