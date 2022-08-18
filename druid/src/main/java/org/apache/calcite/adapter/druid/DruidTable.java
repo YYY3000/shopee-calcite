@@ -250,6 +250,14 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
     return metricFieldNames.contains(name);
   }
 
+  public String getDataSource() {
+    return dataSource;
+  }
+
+  public DruidSchema getSchema() {
+    return schema;
+  }
+
   /** Creates a {@link RelDataType} from a map of
    * field names and types. */
   private static class MapRelProtoDataType implements RelProtoDataType {

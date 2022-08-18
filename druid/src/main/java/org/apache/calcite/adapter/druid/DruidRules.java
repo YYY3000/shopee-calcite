@@ -89,6 +89,8 @@ public class DruidRules {
       DruidAggregateProjectRule.DruidAggregateProjectRuleConfig.DEFAULT.toRule();
   public static final DruidSortRule SORT =
       DruidSortRule.DruidSortRuleConfig.DEFAULT.toRule();
+  public static final DruidJoinRule JOIN =
+      DruidJoinRule.DruidJoinRuleConfig.DEFAULT.toRule();
 
   /** Rule to push an {@link org.apache.calcite.rel.core.Sort} through a
    * {@link org.apache.calcite.rel.core.Project}. Useful to transform
@@ -167,7 +169,8 @@ public class DruidRules {
           FILTER_PROJECT_TRANSPOSE,
           SORT,
           SORT_PROJECT_TRANSPOSE,
-          DRUID_HAVING_FILTER_RULE);
+          DRUID_HAVING_FILTER_RULE,
+          JOIN);
 
   /**
    * Rule to push a {@link org.apache.calcite.rel.core.Filter} into a
@@ -213,10 +216,7 @@ public class DruidRules {
         }
       }
 
-      // Timestamp
-      int timestampFieldIdx =
-          query.getRowType().getFieldNames()
-              .indexOf(query.druidTable.timestampFieldName);
+      int timestampFieldIdx = query.getTimestampFieldIndex();
       RelNode newDruidQuery = query;
       final Triple<List<RexNode>, List<RexNode>, List<RexNode>> triple =
           splitFilters(validPreds, nonValidPreds, timestampFieldIdx);
@@ -726,7 +726,7 @@ public class DruidRules {
 
       return DruidQuery.create(query.getCluster(),
              aggregate.getTraitSet().replace(query.getConvention()),
-             query.getTable(), query.druidTable, newNodes);
+             query.getTable(), query.dataSource, query.intervals, newNodes);
     }
 
     // Returns true if and only if every AggregateCall in calls has a filter argument.
@@ -845,7 +845,7 @@ public class DruidRules {
 
         if (collations.size() == 1) {
           RelFieldCollation firstCollation = collations.get(0);
-          String sortFieldName = query.getQuerySpec().fieldNames.get(firstCollation.getFieldIndex());
+          String sortFieldName = query.getQuerySpec().getFieldNames().get(firstCollation.getFieldIndex());
           if (!sortFieldName.equalsIgnoreCase(DruidTable.DEFAULT_TIMESTAMP_COLUMN)) {
             return;
           }

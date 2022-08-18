@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.adapter.druid.DruidQuery;
+import org.apache.calcite.adapter.druid.query.QuerySpec;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -41,13 +41,14 @@ class DruidChecker implements Consumer<List> {
     this.lines = lines;
   }
 
-  @Override public void accept(final List list) {
+  @Override
+  public void accept(final List list) {
     assertThat(list.size(), is(1));
-    DruidQuery.QuerySpec querySpec = (DruidQuery.QuerySpec) list.get(0);
+    QuerySpec querySpec = (QuerySpec) list.get(0);
     for (String line : lines) {
       final String s =
           replaceSingleWithDoubleQuotes ? line.replace('\'', '"') : line;
-      assertThat(querySpec.getQueryString(null, -1), containsString(s));
+      assertThat(querySpec.getQueryStringWithPage(null, -1), containsString(s));
     }
   }
 }

@@ -73,8 +73,8 @@ class DruidConnectionImpl implements DruidConnection {
 
   private final String url;
   private final String coordinatorUrl;
-  private String userName;
-  private String password;
+  private final String userName;
+  private final String password;
 
   public static final String DEFAULT_RESPONSE_TIMESTAMP_COLUMN = "timestamp";
   private static final SimpleDateFormat UTC_TIMESTAMP_FORMAT;

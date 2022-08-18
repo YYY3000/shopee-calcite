@@ -47,7 +47,7 @@ import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
 /**
  * Filter element of a Druid "groupBy" or "topN" query.
  */
-abstract class DruidJsonFilter implements DruidJson {
+public abstract class DruidJsonFilter implements DruidJson {
 
   private static final ThreadLocal<SimpleDateFormat> DATE_FORMATTER =
       ThreadLocal.withInitial(() -> getDateFormatter(ISO_DATETIME_FRACTIONAL_SECOND_FORMAT));
@@ -632,7 +632,7 @@ abstract class DruidJsonFilter implements DruidJson {
   }
 
   /** Druid Having Filter spec. */
-  protected static class JsonDimHavingFilter implements DruidJson {
+  public static class JsonDimHavingFilter implements DruidJson {
 
     private final DruidJsonFilter filter;
 

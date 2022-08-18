@@ -38,10 +38,10 @@ import java.util.Set;
  * Schema mapped onto a Druid instance.
  */
 public class DruidSchema extends AbstractSchema {
-  final String url;
-  final String coordinatorUrl;
-  String userName;
-  String password;
+  public final String url;
+  public final String coordinatorUrl;
+  public final String userName;
+  public final String password;
   private final boolean discoverTables;
   private Map<String, Table> tableMap = null;
 
@@ -94,4 +94,13 @@ public class DruidSchema extends AbstractSchema {
         fieldMap, metricNameSet, DruidTable.DEFAULT_TIMESTAMP_COLUMN,
         complexMetrics);
   }
+
+  public boolean equals(DruidSchema schema) {
+    return
+        this.url.equals(schema.url) &&
+        this.coordinatorUrl.equals(schema.coordinatorUrl) &&
+        this.userName.equals(schema.userName) &&
+        this.password.equals(schema.password);
+  }
+
 }

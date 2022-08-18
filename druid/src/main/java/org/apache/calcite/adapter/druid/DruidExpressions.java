@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.druid;
 
+import org.apache.calcite.adapter.druid.datasource.JoinDataSource;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
@@ -289,4 +290,5 @@ public class DruidExpressions {
             DruidExpressions.stringLiteral(druidUnit),
             DruidExpressions.stringLiteral(timeZone.getID())));
   }
+
 }

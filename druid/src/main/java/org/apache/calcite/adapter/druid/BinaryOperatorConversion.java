@@ -18,8 +18,11 @@ package org.apache.calcite.adapter.druid;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
@@ -27,7 +30,8 @@ import java.util.List;
  * Binary operator conversion utility class; used to convert expressions like
  * {@code exp1 Operator exp2}.
  */
-public class BinaryOperatorConversion implements DruidSqlOperatorConverter {
+public class BinaryOperatorConversion implements DruidSqlOperatorConverter,
+    DruidJoinSqlOperatorConverter {
   private final SqlOperator operator;
   private final String druidOperator;
 
@@ -36,11 +40,13 @@ public class BinaryOperatorConversion implements DruidSqlOperatorConverter {
     this.druidOperator = druidOperator;
   }
 
-  @Override public SqlOperator calciteOperator() {
+  @Override
+  public SqlOperator calciteOperator() {
     return operator;
   }
 
-  @Override public String toDruidExpression(RexNode rexNode, RelDataType rowType,
+  @Override
+  public String toDruidExpression(RexNode rexNode, RelDataType rowType,
       DruidQuery druidQuery) {
 
     final RexCall call = (RexCall) rexNode;
@@ -59,5 +65,18 @@ public class BinaryOperatorConversion implements DruidSqlOperatorConverter {
 
     return DruidQuery
         .format("(%s %s %s)", druidExpressions.get(0), druidOperator, druidExpressions.get(1));
+  }
+
+  @Override
+  public @Nullable String toDruidJoinConditionExpression(RexNode condition, RelDataType leftRowType,
+      RelDataType rightRowType) {
+    // TODO: need support function
+    RexCall cal = (RexCall) condition;
+    int leftColumnIndex = ((RexInputRef) cal.getOperands().get(0)).getIndex();
+    int rightColumnIndex = ((RexInputRef) cal.getOperands().get(1)).getIndex();
+    String leftColumn = leftRowType.getFieldList().get(leftColumnIndex).getName();
+    String rightColumn =
+        rightRowType.getFieldList().get(rightColumnIndex - leftRowType.getFieldList().size()).getName();
+    return leftColumn + druidOperator + "\"r." + rightColumn + "\"";
   }
 }

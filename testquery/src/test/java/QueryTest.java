@@ -51,15 +51,87 @@ import java.util.Properties;
 
 public class QueryTest {
 
-  private static final String modelFile = "/Users/yiyunyin/java/shopee-calcite/testquery/src/test/resources/druid-campaign-model.json";
+  private static final String modelFile = "/Users/yiyunyin/java/shopee-calcite/testquery/src/test" +
+      "/resources/druid-campaign-model.json";
 
   @Test
   void testDruidQuery() {
-    String query = "SELECT shopid, floor(__time to DAY ) as dt\n" +
-        "FROM druid_campaign_station.shopee_mkpldp_campaign__mp_sg_shop_item_traffic_view\n" +
-        "WHERE __time>='2022-04-26T06:00:00.000Z'\n" +
-        "and __time<'2022-04-28T06:00:00.000Z'\n" +
+    String query = "SELECT shopid, floor(__time to DAY) as dt, sum(view) as pv\n" +
+        "FROM druid_campaign_station.shopee_mkpldp_campaign__mp_id_shop_item_traffic_view\n" +
+        "WHERE __time>='2022-08-16T00:00:00.000Z'\n" +
+        "and __time<'2022-08-18T06:00:00.000Z'\n" +
+        "group by shopid, floor(__time to DAY) \n" +
+        "order by sum(view) desc \n" +
         "limit 10";
+
+    Properties info = new Properties();
+    info.setProperty("caseSensitive", "false");
+    info.setProperty("model", modelFile);
+    try (CalciteConnection calciteConnection =
+             DriverManager.getConnection("jdbc:calcite:", info).unwrap(CalciteConnection.class);
+         Statement statement = calciteConnection.createStatement()) {
+
+      // execute query
+      try (ResultSet resultSet = statement.executeQuery(query)) {
+        while (resultSet.next()) {
+          ResultSetMetaData metaData = resultSet.getMetaData();
+          for (int i = 0; i < metaData.getColumnCount(); i++) {
+            int columnIndex = i + 1;
+            String columnName = metaData.getColumnName(columnIndex);
+            String columnValue = resultSet.getString(columnIndex);
+            System.out.println(columnName + ":" + columnValue);
+          }
+        }
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  @Test
+  void testDruidMultipleQuery() {
+    String query = "SELECT a.__time,a.shopid,a.view,b.region\n" +
+        "FROM druid_campaign_station.shopee_mkpldp_campaign__mp_id_shop_item_traffic_view a\n" +
+        "LEFT JOIN druid_campaign_station.shopee_mkpldp_campaign__brand_ranking_semart_setting b\n" +
+        "ON a.shopid=b.os_shop_id and a.shopid=b.se_shop_id\n" +
+        "WHERE a.__time>='2022-08-16T17:00:00.000Z'\n" +
+        "and a.__time<'2022-08-18T17:00:00.000Z'\n" +
+        "and b.region='ID'\n" +
+        "and b.__time='2022-08-12T00:00:00.000Z'";
+
+    Properties info = new Properties();
+    info.setProperty("caseSensitive", "false");
+    info.setProperty("model", modelFile);
+    try (CalciteConnection calciteConnection =
+             DriverManager.getConnection("jdbc:calcite:", info).unwrap(CalciteConnection.class);
+         Statement statement = calciteConnection.createStatement()) {
+
+      // execute query
+      try (ResultSet resultSet = statement.executeQuery(query)) {
+        while (resultSet.next()) {
+          ResultSetMetaData metaData = resultSet.getMetaData();
+          for (int i = 0; i < metaData.getColumnCount(); i++) {
+            int columnIndex = i + 1;
+            String columnName = metaData.getColumnName(columnIndex);
+            String columnValue = resultSet.getString(columnIndex);
+            System.out.println(columnName + ":" + columnValue);
+          }
+        }
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  @Test
+  void testDruidJoinQuery() {
+    String query = "SELECT a.__time,a.shopid,a.view,b.region\n" +
+        "FROM druid_campaign_station.shopee_mkpldp_campaign__mp_sg_shop_item_traffic_view_campaign_history a\n" +
+        "LEFT JOIN druid_campaign_station.shopee_mkpldp_campaign__brand_ranking_semart_setting b\n" +
+        "ON a.shopid=b.os_shop_id\n" +
+        "WHERE a.__time>='2021-12-30T17:00:00.000Z'\n" +
+        "and a.__time<'2021-12-31T17:00:00.000Z'\n" +
+        "and b.os_shop_id>0\n";
 
     Properties info = new Properties();
     info.setProperty("caseSensitive", "false");
