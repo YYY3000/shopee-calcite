@@ -620,6 +620,10 @@ public enum SqlKind {
    */
   CURRENT_VALUE,
 
+  /** {@code TIME FLOOR} function. */
+  /** {@code FLOOR} function. */
+  TIME_FLOOR,
+
   /** {@code FLOOR} function. */
   FLOOR,
 

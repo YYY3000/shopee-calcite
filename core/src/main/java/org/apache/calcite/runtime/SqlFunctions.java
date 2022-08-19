@@ -1304,6 +1304,17 @@ public class SqlFunctions {
     return bigDecimals[1];
   }
 
+  // TIME FLOOR
+  /** SQL <code>TIME_FLOOR</code> operator applied to int values. */
+  public static int timeFloor(int b0, int b1) {
+    return floor(b0, b1);
+  }
+
+  /** SQL <code>TIME_FLOOR</code> operator applied to long values. */
+  public static long timeFloor(long b0, long b1) {
+    return floor(b0, b1);
+  }
+
   // FLOOR
 
   public static double floor(double b0) {
@@ -2519,6 +2530,11 @@ public class SqlFunctions {
   @NonDeterministic
   public static TimeZone timeZone(DataContext root) {
     return (TimeZone) DataContext.Variable.TIME_ZONE.get(root);
+  }
+
+  @NonDeterministic
+  public static TimeZone timeZone(String tz) {
+    return TimeZone.getTimeZone(tz);
   }
 
   /** SQL {@code USER} function. */

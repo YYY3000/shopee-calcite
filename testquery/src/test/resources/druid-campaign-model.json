@@ -12,14 +12,6 @@
         "userName": "admin",
         "password": "TODEdXYSQ3r2W6RIOgTk92nioKqmENl4Hcy5MXcT"
       }
-    },
-    {
-      "type": "jdbc",
-      "name": "mysql_test_local",
-      "jdbcDriver": "com.mysql.cj.jdbc.Driver",
-      "jdbcUrl": "jdbc:mysql://localhost:3306/test",
-      "jdbcUser": "root",
-      "jdbcPassword": "3000"
     }
   ]
 }

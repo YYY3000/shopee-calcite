@@ -178,13 +178,18 @@ public class TimeExtractionFunction implements ExtractionFunction {
    * @return true if the extract unit is valid
    */
   public static boolean isValidTimeFloor(RexNode rexNode) {
-    if (rexNode.getKind() != SqlKind.FLOOR) {
+    if (rexNode.getKind() != SqlKind.FLOOR && rexNode.getKind() != SqlKind.TIME_FLOOR) {
       return false;
     }
     final RexCall call = (RexCall) rexNode;
-    if (call.operands.size() != 2) {
+    if (rexNode.getKind() == SqlKind.FLOOR && call.operands.size() != 2) {
       return false;
     }
+
+    if (rexNode.getKind() == SqlKind.TIME_FLOOR && call.operands.size() != 3) {
+      return false;
+    }
+
     final RexLiteral flag = (RexLiteral) call.operands.get(1);
     final TimeUnitRange timeUnit = (TimeUnitRange) flag.getValue();
     return timeUnit != null && VALID_TIME_FLOOR.contains(timeUnit);

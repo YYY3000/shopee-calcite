@@ -139,6 +139,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           .add(new UnarySuffixOperatorConversion(SqlStdOperatorTable.IS_NULL, "== null"))
           .add(new UnarySuffixOperatorConversion(SqlStdOperatorTable.IS_NOT_NULL, "!= null"))
           .add(new FloorOperatorConversion())
+          .add(new TimeFloorOperatorConversion())
           .add(new CeilOperatorConversion())
           .add(new SubstringOperatorConversion())
           .build();
@@ -350,9 +351,6 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         // unknown Granularity
         return Pair.of(null, null);
       }
-      if (!TimeExtractionFunction.isValidTimeFloor(rexNode)) {
-        return Pair.of(null, null);
-      }
       RexNode floorValueNode = ((RexCall) rexNode).getOperands().get(0);
       if (needUtcTimeExtract(floorValueNode)) {
         // Use 'UTC' at the extraction level, since all datetime types
@@ -364,6 +362,17 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       } else {
         return Pair.of(null, null);
       }
+      break;
+    case TIME_FLOOR:
+      final TimeZone tz = TimeZone.getTimeZone(RexLiteral.stringValue(((RexCall) rexNode).getOperands().get(2)));
+      granularity = DruidDateTimeUtils.extractGranularity(rexNode, tz.getID());
+      if (granularity == null) {
+        // unknown Granularity
+        return Pair.of(null, null);
+      }
+      RexNode timeFloorValueNode = ((RexCall) rexNode).getOperands().get(0);
+      extractionFunction = TimeExtractionFunction.createFloorFromGranularity(granularity, tz.getID());
+      columnName = extractColumnName(timeFloorValueNode, rowType, druidQuery);
       break;
     case CAST:
       // CASE we have a cast over InputRef. Check that cast is valid
