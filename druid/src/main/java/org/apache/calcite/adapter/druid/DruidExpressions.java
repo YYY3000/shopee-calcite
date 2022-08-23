@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.adapter.druid;
 
-import org.apache.calcite.adapter.druid.datasource.JoinDataSource;
+import org.apache.calcite.adapter.druid.datasource.TableDataSource;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
@@ -112,7 +112,7 @@ public class DruidExpressions {
       if (columnName == null) {
         return null;
       }
-      if (druidRel.getDruidTable().timestampFieldName.equals(columnName)) {
+      if (druidRel.getDataSource() instanceof TableDataSource && druidRel.getDruidTable().timestampFieldName.equals(columnName)) {
         return DruidExpressions.fromColumn(DruidTable.DEFAULT_TIMESTAMP_COLUMN);
       }
       return DruidExpressions.fromColumn(columnName);

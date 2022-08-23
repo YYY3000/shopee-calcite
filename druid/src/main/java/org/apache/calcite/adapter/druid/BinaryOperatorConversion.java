@@ -20,9 +20,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
@@ -68,15 +67,38 @@ public class BinaryOperatorConversion implements DruidSqlOperatorConverter,
   }
 
   @Override
-  public @Nullable String toDruidJoinConditionExpression(RexNode condition, RelDataType leftRowType,
-      RelDataType rightRowType) {
+  public String toDruidJoinConditionExpression(RexCall condition, RelDataType leftRowType,
+      RelDataType rightRowType, String rightPrefix) {
     // TODO: need support function
-    RexCall cal = (RexCall) condition;
-    int leftColumnIndex = ((RexInputRef) cal.getOperands().get(0)).getIndex();
-    int rightColumnIndex = ((RexInputRef) cal.getOperands().get(1)).getIndex();
-    String leftColumn = leftRowType.getFieldList().get(leftColumnIndex).getName();
-    String rightColumn =
-        rightRowType.getFieldList().get(rightColumnIndex - leftRowType.getFieldList().size()).getName();
-    return leftColumn + druidOperator + "\"r." + rightColumn + "\"";
+    if (condition.getKind() != SqlKind.EQUALS) {
+      return "";
+    }
+
+    int leftFieldCount = leftRowType.getFieldCount();
+    final List<RexNode> operands = condition.getOperands();
+    if ((operands.get(0) instanceof RexInputRef) && (operands.get(1) instanceof RexInputRef)) {
+      RexInputRef op0 = (RexInputRef) operands.get(0);
+      RexInputRef op1 = (RexInputRef) operands.get(1);
+      RexInputRef leftField;
+      RexInputRef rightField;
+      if (op0.getIndex() < leftFieldCount && op1.getIndex() >= leftFieldCount) {
+        // Arguments were of form 'op0 = op1'
+        leftField = op0;
+        rightField = op1;
+      } else if (op1.getIndex() < leftFieldCount && op0.getIndex() >= leftFieldCount) {
+        // Arguments were of form 'op1 = op0'
+        leftField = op1;
+        rightField = op0;
+      } else {
+        return "";
+      }
+
+      String leftColumn = leftRowType.getFieldList().get(leftField.getIndex()).getName();
+      String rightColumn =
+          rightRowType.getFieldList().get(rightField.getIndex() - leftFieldCount).getName();
+      return leftColumn + druidOperator + "\"" + rightPrefix + rightColumn + "\"";
+    } else {
+      return "";
+    }
   }
 }

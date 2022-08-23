@@ -8,16 +8,15 @@ import org.apache.calcite.adapter.druid.datasource.JoinDataSource;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
-import org.apache.calcite.rel.core.Join;
-import org.apache.calcite.rel.core.JoinRelType;
-import org.apache.calcite.rel.core.TableScan;
-import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.rel.core.*;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 
 import org.immutables.value.Value;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -33,6 +32,9 @@ public class DruidJoinRule extends RelRule<DruidJoinRule.DruidJoinRuleConfig> {
     super(config);
   }
 
+  private static final List<JoinRelType> allowedJoinTypes = Arrays.asList(JoinRelType.LEFT,
+      JoinRelType.RIGHT, JoinRelType.FULL, JoinRelType.INNER);
+
   @Override
   public void onMatch(RelOptRuleCall call) {
     System.out.println("Druid Join On Match");
@@ -44,28 +46,42 @@ public class DruidJoinRule extends RelRule<DruidJoinRule.DruidJoinRuleConfig> {
       return;
     }
 
-    RexNode condition = join.getCondition();
     JoinRelType joinRelType = join.getJoinType();
-
-    if (joinRelType != JoinRelType.LEFT && joinRelType != JoinRelType.INNER) {
+    if (!allowedJoinTypes.contains(joinRelType)) {
       return;
     }
 
-    JoinDataSource joinDataSource = JoinDataSource.create(left, right, getConditionExpression(condition, left, right), joinRelType);
+    String rightPrefix = "r.";
+    RexNode condition = join.getCondition();
+    String joinExpression = getConditionExpression(condition, left, right, rightPrefix);
+    if ("".equals(joinExpression)) {
+      return;
+    }
 
-    final TableScan scan = LogicalTableScan.create(join.getCluster(), left.getTable(), ImmutableList.of());
-    DruidQuery query = DruidQuery.create(join.getCluster(), join.getTraitSet(),
-        left.getTable(), joinDataSource, left.intervals,
-        ImmutableList.of(scan));
-    System.out.println(query.getQuerySpec().getQueryString());
-//    call.transformTo(query);
+    JoinDataSource joinDataSource = JoinDataSource.create(left, right, rightPrefix,
+        joinExpression, joinRelType);
+
+    try {
+      DruidQuery query = DruidQuery.create(join.getCluster(), join.getTraitSet(),
+          left.getTable(), joinDataSource, left.intervals,
+          ImmutableList.of(join));
+      System.out.println(query.getQuerySpec().getQueryString());
+//      call.transformTo(query);
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
   }
 
-  private String getConditionExpression(RexNode condition, DruidQuery left, DruidQuery right) {
+  private String getConditionExpression(RexNode condition, DruidQuery left, DruidQuery right,
+      String rightPrefix) {
     List<String> expressions = new ArrayList<>();
 
     List<RexNode> conds = RelOptUtil.conjunctions(condition);
     for (RexNode e : conds) {
+      if (!(e instanceof RexCall)) {
+        continue;
+      }
+
       RexCall cal = (RexCall) e;
       DruidSqlOperatorConverter conversion =
           DruidQuery.getDefaultConverterOperatorMap().get(cal.getOperator());
@@ -74,11 +90,18 @@ public class DruidJoinRule extends RelRule<DruidJoinRule.DruidJoinRuleConfig> {
       }
 
       String expression =
-          ((DruidJoinSqlOperatorConverter) conversion).toDruidJoinConditionExpression(e,
-              left.getRowType(), right.getRowType());
+          ((DruidJoinSqlOperatorConverter) conversion).toDruidJoinConditionExpression(cal,
+              left.getRowType(), right.getRowType(), rightPrefix);
+      if (null == expression || expression.equals("")) {
+        continue;
+      }
+
       expressions.add(expression);
     }
 
+    if (expressions.isEmpty()) {
+      return "";
+    }
     return Joiner.on(" AND ").join(expressions);
   }
 

@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.druid;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -29,12 +30,13 @@ public interface DruidJoinSqlOperatorConverter {
 
   /**
    * Translate rexNode to valid Druid expression.
-   * @param condition rexNode to translate to Druid join condition expression
-   * @param leftRowType row type associated with left query
-   * @param rightRowType row type associated with right query
    *
+   * @param condition    rexNode to translate to Druid join condition expression
+   * @param leftRowType  row type associated with left query
+   * @param rightRowType row type associated with right query
    * @return valid Druid expression or null if it can not convert the rexNode
    */
-  @Nullable String toDruidJoinConditionExpression(RexNode condition, RelDataType leftRowType, RelDataType rightRowType);
+  @Nullable String toDruidJoinConditionExpression(RexCall condition, RelDataType leftRowType,
+      RelDataType rightRowType, String rightPrefix);
 
 }

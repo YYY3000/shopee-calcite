@@ -42,12 +42,7 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelFieldCollation.Direction;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
-import org.apache.calcite.rel.core.Aggregate;
-import org.apache.calcite.rel.core.AggregateCall;
-import org.apache.calcite.rel.core.Filter;
-import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.Sort;
-import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.core.*;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
@@ -453,7 +448,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         return null;
       }
       // calcite has this un-direct renaming of timestampFieldName to native druid `__time`
-      if (query.getDruidTable().timestampFieldName.equals(columnName)) {
+      if (query.getDataSource() instanceof TableDataSource && query.getDruidTable().timestampFieldName.equals(columnName)) {
         return DruidTable.DEFAULT_TIMESTAMP_COLUMN;
       }
       return columnName;
@@ -503,8 +498,10 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     if (!super.isValid(litmus, context)) {
       return false;
     }
+
+    boolean isDruidJoin = dataSource instanceof JoinDataSource;
     final String signature = signature();
-    if (!isValidSignature(signature)) {
+    if (!isDruidJoin && !isValidSignature(signature)) {
       return litmus.fail("invalid signature [{}]", signature);
     }
     if (rels.isEmpty()) {
@@ -513,7 +510,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     for (int i = 0; i < rels.size(); i++) {
       final RelNode r = rels.get(i);
       if (i == 0) {
-        if (!(r instanceof TableScan)) {
+        if (!isDruidJoin && !(r instanceof TableScan)) {
           return litmus.fail("first rel must be TableScan, was ", r);
         }
         // TODO
@@ -522,9 +519,12 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 //        }
       } else {
         final List<RelNode> inputs = r.getInputs();
-        if (inputs.size() != 1 || inputs.get(0) != rels.get(i - 1)) {
+        if (r instanceof Join) {
+
+        } else if (inputs.size() != 1 || inputs.get(0) != rels.get(i - 1)) {
           return litmus.fail("each rel must have a single input");
         }
+
         if (r instanceof Aggregate) {
           final Aggregate aggregate = (Aggregate) r;
           if (aggregate.getGroupSets().size() != 1) {
@@ -623,6 +623,9 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           pw.item("dir" + ord.i, ord.e.shortString());
         }
         pw.itemIf("fetch", sort.fetch, sort.fetch != null);
+      } else if (rel instanceof Join) {
+        JoinDataSource joinDataSource = (JoinDataSource) dataSource;
+        pw.item("join", joinDataSource);
       } else {
         throw new AssertionError("rel type not supported in Druid query "
             + rel);
@@ -1061,7 +1064,9 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         JoinDataSource joinDataSource = (JoinDataSource) dataSource;
         scanColumnNames = new ArrayList<>();
         scanColumnNames.addAll(joinDataSource.getLeft().getRowType().getFieldNames());
-        scanColumnNames.addAll(joinDataSource.getRight().getRowType().getFieldNames());
+        for (String fieldName : joinDataSource.getRight().getRowType().getFieldNames()) {
+          scanColumnNames.add(joinDataSource.getRightPrefix() + fieldName);
+        }
       } else {
         // Scan all the fields
         scanColumnNames = rowType.getFieldNames();
@@ -1332,8 +1337,11 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     }
 
     // Convert from a complex metric
-    ComplexMetric complexMetric = druidQuery.getDruidTable().resolveComplexMetric(fieldName,
-        aggCall);
+    ComplexMetric complexMetric = null;
+    if (druidQuery.getDataSource() instanceof TableDataSource) {
+      complexMetric = druidQuery.getDruidTable().resolveComplexMetric(fieldName,
+          aggCall);
+    }
 
     switch (aggCall.getAggregation().getKind()) {
     case COUNT:
