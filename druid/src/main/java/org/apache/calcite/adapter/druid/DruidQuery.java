@@ -844,7 +844,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         if (expression == null) {
           return null;
         }
-        final String virColName = SqlValidatorUtil.uniquify("vc",
+        final String virColName = SqlValidatorUtil.uniquify(druidColumn.left + "vc",
             usedFieldNames, SqlValidatorUtil.EXPR_SUGGESTER);
         virtualColumnsBuilder.add(VirtualColumn.builder()
             .withName(virColName)
@@ -856,7 +856,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       } else {
         // simple inputRef or extractable function
         if (usedFieldNames.contains(druidColumn.left)) {
-          final String virColName = SqlValidatorUtil.uniquify("vc",
+          final String virColName = SqlValidatorUtil.uniquify(druidColumn.left + "vc",
               usedFieldNames, SqlValidatorUtil.EXPR_SUGGESTER);
           virtualColumnsBuilder.add(VirtualColumn.builder()
               .withName(virColName)
