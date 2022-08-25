@@ -10,6 +10,7 @@ import org.apache.calcite.adapter.druid.DruidSchema;
 import org.apache.calcite.adapter.druid.DruidTable;
 import org.apache.calcite.adapter.druid.util.JoinPrefixUtils;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 
 import java.io.IOException;
 import java.util.*;
@@ -183,6 +184,16 @@ public class JoinDataSource implements DataSource {
     DruidQuery.writeField(generator, "condition", condition);
     DruidQuery.writeField(generator, "joinType", joinType.toString());
     generator.writeEndObject();
+  }
+
+  public String getColumnName(int index) {
+    List<RelDataTypeField> leftFields = left.getRowType().getFieldList();
+    List<RelDataTypeField> rightFields = right.getRowType().getFieldList();
+    if (index < leftFields.size()) {
+      return leftFields.get(index).getName();
+    } else {
+      return rightPrefix + rightFields.get(index - leftFields.size()).getName();
+    }
   }
 
 }

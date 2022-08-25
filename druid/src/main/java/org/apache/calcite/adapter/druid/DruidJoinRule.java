@@ -36,10 +36,10 @@ public class DruidJoinRule extends RelRule<DruidJoinRule.DruidJoinRuleConfig> {
 
   @Override
   public void onMatch(RelOptRuleCall call) {
-    System.out.println("Druid Join On Match");
-    final Join join = call.rel(0);
-    final DruidQuery left = call.rel(1);
-    final DruidQuery right = call.rel(2);
+    final Project project = call.rel(0);
+    final Join join = call.rel(1);
+    final DruidQuery left = call.rel(2);
+    final DruidQuery right = call.rel(3);
 
     if (!left.getDruidSchema().equals(right.getDruidSchema())) {
       return;
@@ -60,15 +60,10 @@ public class DruidJoinRule extends RelRule<DruidJoinRule.DruidJoinRuleConfig> {
     JoinDataSource joinDataSource = JoinDataSource.create(left, right, rightPrefix,
         joinExpression, joinRelType);
 
-    try {
-      DruidQuery query = DruidQuery.create(join.getCluster(), join.getTraitSet(),
-          left.getTable(), joinDataSource, left.intervals,
-          ImmutableList.of(join));
-      System.out.println(query.getQuerySpec().getQueryString());
-//      call.transformTo(query);
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
+    DruidQuery query = DruidQuery.create(project.getCluster(), project.getTraitSet(),
+        left.getTable(), joinDataSource, left.intervals,
+        ImmutableList.of(join, project));
+    call.transformTo(query);
   }
 
   private String getConditionExpression(RexNode condition, DruidQuery left, DruidQuery right,
@@ -110,9 +105,10 @@ public class DruidJoinRule extends RelRule<DruidJoinRule.DruidJoinRuleConfig> {
   @Value.Immutable(singleton = false)
   public interface DruidJoinRuleConfig extends RelRule.Config {
     DruidJoinRuleConfig DEFAULT = ImmutableDruidJoinRuleConfig.builder()
-        .withOperandSupplier(b0 -> b0.operand(Join.class).inputs(
-            b1 -> b1.operand(DruidQuery.class).noInputs(),
-            b2 -> b2.operand(DruidQuery.class).noInputs()))
+        .withOperandSupplier(b0 -> b0.operand(Project.class)
+            .inputs(b1 -> b1.operand(Join.class)
+                .inputs(b2 -> b2.operand(DruidQuery.class).noInputs(),
+                    b3 -> b3.operand(DruidQuery.class).noInputs())))
         .build();
 
     @Override

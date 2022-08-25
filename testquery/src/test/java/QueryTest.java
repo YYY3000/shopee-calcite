@@ -1,4 +1,5 @@
 import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.druid.DruidRules;
 import org.apache.calcite.adapter.druid.DruidSchema;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
@@ -6,14 +7,13 @@ import org.apache.calcite.adapter.jdbc.JdbcConvention;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.adapter.jdbc.JdbcUtils;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
+import org.apache.calcite.interpreter.BindableConvention;
+import org.apache.calcite.interpreter.Bindables;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
-import org.apache.calcite.plan.Contexts;
-import org.apache.calcite.plan.ConventionTraitDef;
-import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelOptCostImpl;
+import org.apache.calcite.plan.*;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.rel.RelNode;
@@ -47,7 +47,9 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 
 public class QueryTest {
@@ -57,51 +59,17 @@ public class QueryTest {
 
   @Test
   void testDruidQuery() {
-    String query = "SELECT shopid, floor(__time to DAY) as dt, sum(view) as pv\n" +
+    String query = "SELECT shopid, sum(view) as pv\n" +
         "FROM druid_campaign_station.shopee_mkpldp_campaign__mp_id_shop_item_traffic_view\n" +
         "WHERE __time>='2022-08-16T00:00:00.000Z'\n" +
         "and __time<'2022-08-18T06:00:00.000Z'\n" +
-        "group by shopid, floor(__time to DAY) \n" +
+        "group by shopid \n" +
         "order by sum(view) desc \n" +
         "limit 10";
 
     Properties info = new Properties();
     info.setProperty("caseSensitive", "false");
-    info.setProperty("model", modelFile);
-    try (CalciteConnection calciteConnection =
-             DriverManager.getConnection("jdbc:calcite:", info).unwrap(CalciteConnection.class);
-         Statement statement = calciteConnection.createStatement()) {
-
-      // execute query
-      try (ResultSet resultSet = statement.executeQuery(query)) {
-        while (resultSet.next()) {
-          ResultSetMetaData metaData = resultSet.getMetaData();
-          for (int i = 0; i < metaData.getColumnCount(); i++) {
-            int columnIndex = i + 1;
-            String columnName = metaData.getColumnName(columnIndex);
-            String columnValue = resultSet.getString(columnIndex);
-            System.out.println(columnName + ":" + columnValue);
-          }
-        }
-      }
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-  }
-
-  @Test
-  void testDruidMultipleQuery() {
-    String query = "SELECT a.__time,a.shopid,a.view,b.region\n" +
-        "FROM druid_campaign_station.shopee_mkpldp_campaign__mp_id_shop_item_traffic_view a\n" +
-        "LEFT JOIN druid_campaign_station.shopee_mkpldp_campaign__brand_ranking_semart_setting b\n" +
-        "ON a.shopid=b.os_shop_id and a.shopid=b.se_shop_id\n" +
-        "WHERE a.__time>='2022-08-16T17:00:00.000Z'\n" +
-        "and a.__time<'2022-08-18T17:00:00.000Z'\n" +
-        "and b.region='ID'\n" +
-        "and b.__time='2022-08-12T00:00:00.000Z'";
-
-    Properties info = new Properties();
-    info.setProperty("caseSensitive", "false");
+    info.setProperty("approximateTopN", "true");
     info.setProperty("model", modelFile);
     try (CalciteConnection calciteConnection =
              DriverManager.getConnection("jdbc:calcite:", info).unwrap(CalciteConnection.class);
@@ -126,6 +94,43 @@ public class QueryTest {
 
   @Test
   void testDruidJoinQuery() {
+    String query = "SELECT a.__time,a.shopid,a.view,b.gmv\n" +
+        "FROM druid_campaign_station.shopee_mkpldp_campaign__mp_id_shop_item_traffic_view a\n" +
+        "LEFT JOIN druid_campaign_station.shopee_mkpldp_campaign__mp_id_item_sales b\n" +
+        "ON a.shopid=b.shopid\n" +
+        "WHERE a.__time>='2022-08-16T17:00:00.000Z'\n" +
+        "and a.__time<'2022-08-16T17:02:00.000Z'\n" +
+        "and a.shopid in (10570,10577,10581)\n" +
+        "and b.shopid in (10570,10577,10581)\n" +
+        "and b.__time>='2022-08-16T17:00:00.000Z'\n" +
+        "and b.__time<'2022-08-16T17:02:00.000Z'";
+
+    Properties info = new Properties();
+    info.setProperty("caseSensitive", "false");
+    info.setProperty("model", modelFile);
+    try (CalciteConnection calciteConnection =
+             DriverManager.getConnection("jdbc:calcite:", info).unwrap(CalciteConnection.class);
+         Statement statement = calciteConnection.createStatement()) {
+
+      // execute query
+      try (ResultSet resultSet = statement.executeQuery(query)) {
+        while (resultSet.next()) {
+          ResultSetMetaData metaData = resultSet.getMetaData();
+          for (int i = 0; i < metaData.getColumnCount(); i++) {
+            int columnIndex = i + 1;
+            String columnName = metaData.getColumnName(columnIndex);
+            String columnValue = resultSet.getString(columnIndex);
+            System.out.println(columnName + ":" + columnValue);
+          }
+        }
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  @Test
+  void testDruidUnionQuery() {
     String query = "SELECT a.__time,a.shopid,a.view,b.region\n" +
         "FROM druid_campaign_station.shopee_mkpldp_campaign__mp_sg_shop_item_traffic_view_campaign_history a\n" +
         "LEFT JOIN druid_campaign_station.shopee_mkpldp_campaign__brand_ranking_semart_setting b\n" +
@@ -227,15 +232,14 @@ public class QueryTest {
 
   @Test
   void testSqlExecute() {
-    String sql = "SELECT a.shopid,a.dt,b.shopname FROM \n" +
-        "(SELECT shopid, floor(__time to MINUTE ) as dt\n" +
-        "FROM druid_campaign_station.shopee_mkpldp_campaign__mp_sg_shop_item_traffic_view\n" +
-        "WHERE __time>='2022-04-20T06:00:00.000Z'\n" +
-        "and __time<'2022-04-26T06:00:00.000Z'\n" +
-        "limit 10) as a\n" +
-        "left join\n" +
-        "(SELECT * FROM mysql_test_local.shop_tab) as b\n" +
-        "ON a.shopid=b.shopid";
+    String sql = "SELECT a.__time,a.shopid,a.view,b.region\n" +
+        "FROM druid_campaign_station.shopee_mkpldp_campaign__mp_id_shop_item_traffic_view a\n" +
+        "LEFT JOIN druid_campaign_station.shopee_mkpldp_campaign__brand_ranking_semart_setting b\n" +
+        "ON a.shopid=b.os_shop_id and a.shopid=b.se_shop_id\n" +
+        "WHERE a.__time>='2022-08-16T17:00:00.000Z'\n" +
+        "and a.__time<'2022-08-18T17:00:00.000Z'\n" +
+        "and b.region='ID'\n" +
+        "and b.__time='2022-08-12T00:00:00.000Z'";
 
     Properties info = new Properties();
     info.setProperty("caseSensitive", "false");
@@ -284,24 +288,14 @@ public class QueryTest {
       System.out.println(relRoot);
 
       // Optimizer (RelNode -> RelNode)
-      RuleSet rules = RuleSets.ofList(
-          CoreRules.FILTER_TO_CALC,
-          CoreRules.PROJECT_TO_CALC,
-          CoreRules.FILTER_CALC_MERGE,
-          CoreRules.PROJECT_CALC_MERGE,
-          CoreRules.FILTER_INTO_JOIN,
-          EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
-          EnumerableRules.ENUMERABLE_PROJECT_TO_CALC_RULE,
-          EnumerableRules.ENUMERABLE_FILTER_TO_CALC_RULE,
-          EnumerableRules.ENUMERABLE_JOIN_RULE,
-          EnumerableRules.ENUMERABLE_SORT_RULE,
-          EnumerableRules.ENUMERABLE_CALC_RULE,
-          EnumerableRules.ENUMERABLE_AGGREGATE_RULE);
+      List<RelOptRule> rules = new ArrayList<>();
+      rules.addAll(DruidRules.RULES);
+      rules.addAll(Bindables.RULES);
       Program program = Programs.of(RuleSets.ofList(rules));
       RelNode optimizerRelTree = program.run(
           planner,
           relRoot.rel,
-          relRoot.rel.getTraitSet().plus(EnumerableConvention.INSTANCE),
+          relRoot.rel.getTraitSet().plus(BindableConvention.INSTANCE),
           Collections.emptyList(),
           Collections.emptyList());
       System.out.println(optimizerRelTree);

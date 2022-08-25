@@ -443,7 +443,12 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       DruidQuery query) {
     if (rexNode.getKind() == SqlKind.INPUT_REF) {
       final RexInputRef ref = (RexInputRef) rexNode;
-      final String columnName = rowType.getFieldNames().get(ref.getIndex());
+      final int columnIndex = ref.getIndex();
+      String columnName = rowType.getFieldNames().get(columnIndex);
+      if (query.getDataSource() instanceof JoinDataSource) {
+        JoinDataSource joinDataSource = (JoinDataSource) query.getDataSource();
+        columnName = joinDataSource.getColumnName(columnIndex);
+      }
       if (columnName == null) {
         return null;
       }
@@ -519,8 +524,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 //        }
       } else {
         final List<RelNode> inputs = r.getInputs();
-        if (r instanceof Join) {
-
+        if (r instanceof Join || rels.get(i - 1) instanceof Join) {
+          continue;
         } else if (inputs.size() != 1 || inputs.get(0) != rels.get(i - 1)) {
           return litmus.fail("each rel must have a single input");
         }
@@ -715,7 +720,6 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   }
 
   protected QuerySpec deriveQuerySpec() {
-    final RelDataType rowType = table.getRowType();
     int i = 1;
 
     Filter filterRel = null;
@@ -753,7 +757,6 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     List<Direction> collationDirections = null;
     ImmutableBitSet.Builder numericCollationBitSetBuilder = ImmutableBitSet.builder();
     Integer fetch = null;
-    String direction = null;
     if (i < rels.size() && rels.get(i) instanceof Sort) {
       final Sort sort = (Sort) rels.get(i++);
       collationIndexes = new ArrayList<>();
@@ -773,7 +776,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       throw new AssertionError("could not implement all rels");
     }
 
-    return getQuery(rowType, filterRel, project, groupSet, aggCalls, aggNames,
+    return getQuery(filterRel, project, groupSet, aggCalls, aggNames,
         collationIndexes, collationDirections, numericCollationBitSetBuilder.build(), fetch,
         postProject, havingFilter);
   }
@@ -845,8 +848,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
             usedFieldNames, SqlValidatorUtil.EXPR_SUGGESTER);
         virtualColumnsBuilder.add(VirtualColumn.builder()
             .withName(virColName)
-            .withExpression(expression).withType(
-                DruidExpressions.EXPRESSION_TYPES.get(project.getType().getSqlTypeName()))
+            .withExpression(expression)
+            .withType(DruidExpressions.EXPRESSION_TYPES.get(project.getType().getSqlTypeName()))
             .build());
         usedFieldNames.add(virColName);
         projectedColumnsBuilder.add(virColName);
@@ -1039,7 +1042,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     return aggregations;
   }
 
-  protected QuerySpec getQuery(RelDataType rowType, Filter filter, Project project,
+  protected QuerySpec getQuery(Filter filter, Project project,
       ImmutableBitSet groupSet, List<AggregateCall> aggCalls, List<String> aggNames,
       List<Integer> collationIndexes, List<Direction> collationDirections,
       ImmutableBitSet numericCollationIndexes, Integer fetch, Project postProject,
@@ -1069,7 +1072,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         }
       } else {
         // Scan all the fields
-        scanColumnNames = rowType.getFieldNames();
+        scanColumnNames = table.getRowType().getFieldNames();
       }
 
       String direction = null;

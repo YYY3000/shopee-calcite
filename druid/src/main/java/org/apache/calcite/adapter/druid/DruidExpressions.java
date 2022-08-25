@@ -107,13 +107,9 @@ public class DruidExpressions {
     SqlTypeName sqlTypeName = rexNode.getType().getSqlTypeName();
 
     if (kind == SqlKind.INPUT_REF) {
-      final RexInputRef ref = (RexInputRef) rexNode;
-      final String columnName = inputRowType.getFieldNames().get(ref.getIndex());
+      final String columnName = DruidQuery.extractColumnName(rexNode, inputRowType, druidRel);
       if (columnName == null) {
         return null;
-      }
-      if (druidRel.getDataSource() instanceof TableDataSource && druidRel.getDruidTable().timestampFieldName.equals(columnName)) {
-        return DruidExpressions.fromColumn(DruidTable.DEFAULT_TIMESTAMP_COLUMN);
       }
       return DruidExpressions.fromColumn(columnName);
     }
