@@ -94,19 +94,39 @@ public class QueryTest {
 
   @Test
   void testDruidJoinQuery() {
-    String query = "SELECT a.__time,a.shopid,a.view,b.gmv\n" +
-        "FROM druid_campaign_station.shopee_mkpldp_campaign__mp_id_shop_item_traffic_view a\n" +
-        "LEFT JOIN druid_campaign_station.shopee_mkpldp_campaign__mp_id_item_sales b\n" +
-        "ON a.shopid=b.shopid\n" +
-        "WHERE a.__time>='2022-08-16T17:00:00.000Z'\n" +
-        "and a.__time<'2022-08-16T17:02:00.000Z'\n" +
-        "and a.shopid in (10570,10577,10581)\n" +
-        "and b.shopid in (10570,10577,10581)\n" +
-        "and b.__time>='2022-08-16T17:00:00.000Z'\n" +
-        "and b.__time<'2022-08-16T17:02:00.000Z'";
+//    String query = "SELECT a.__time,FLOOR(a.__time to day),a.shopid,a.view,b.gmv\n" +
+//        "FROM druid_campaign_station.shopee_mkpldp_campaign__mp_id_shop_item_traffic_view a\n" +
+//        "LEFT JOIN druid_campaign_station.shopee_mkpldp_campaign__mp_id_item_sales b\n" +
+//        "ON FLOOR(a.__time to day)=FLOOR(b.__time to day)\n" +
+//        "WHERE a.__time>='2022-08-16T17:00:00.000Z'\n" +
+//        "and a.__time<'2022-08-16T17:02:00.000Z'\n" +
+//        "and a.shopid in (10570,10577,10581)\n" +
+//        "and b.shopid in (10570,10577,10581)\n" +
+//        "and b.__time>='2022-08-16T17:00:00.000Z'\n" +
+//        "and b.__time<'2022-08-16T17:02:00.000Z'";
+
+    String query = "SELECT a.shopid,a.pv,b.gmv\n" +
+        "FROM\n" +
+        "(SELECT shopid,sum(view) as pv\n" +
+        "FROM druid_campaign_station.shopee_mkpldp_campaign__mp_id_shop_item_traffic_view\n" +
+        "WHERE __time>='2022-08-16T17:00:00.000Z'\n" +
+        "and __time<'2022-08-16T17:02:00.000Z'\n" +
+        "GROUP BY shopid\n" +
+        "ORDER BY sum(view) desc\n" +
+        "limit 1000\n" +
+        ") a\n" +
+        "LEFT JOIN \n" +
+        "(SELECT shopid,sum(gmv) as gmv\n" +
+        "FROM druid_campaign_station.shopee_mkpldp_campaign__mp_id_item_sales\n" +
+        "WHERE __time>='2022-08-16T17:00:00.000Z'\n" +
+        "and __time<'2022-08-16T17:02:00.000Z'\n" +
+        "GROUP BY shopid\n" +
+        ") b\n" +
+        "ON a.shopid=b.shopid";
 
     Properties info = new Properties();
     info.setProperty("caseSensitive", "false");
+    info.setProperty("approximateTopN", "true");
     info.setProperty("model", modelFile);
     try (CalciteConnection calciteConnection =
              DriverManager.getConnection("jdbc:calcite:", info).unwrap(CalciteConnection.class);
